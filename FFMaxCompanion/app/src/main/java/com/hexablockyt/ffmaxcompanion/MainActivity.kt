@@ -1,9 +1,13 @@
 package com.hexablockyt.ffmaxcompanion
 
 import android.app.Activity
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.graphics.Color
 import android.graphics.Typeface
+import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -20,71 +24,76 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
         window.statusBarColor = bg
         window.navigationBarColor = bg
-
         val page = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(20), dp(24), dp(20), dp(24))
+            gravity = Gravity.TOP
+            setPadding(dp(20), dp(28), dp(20), dp(24))
             setBackgroundColor(bg)
         }
-
         page.addView(label("FF MAX", 30, accent, true))
-        page.addView(label("COMPANION  •  OB55 READY UI", 12, muted, true))
-        page.addView(space(22))
-        page.addView(label("Gaming dashboard", 22, white, true))
-        page.addView(label("Apne gameplay setup ko ek jagah manage karo.", 14, muted, false))
+        page.addView(label("COMPANION  •  FLOATING QUICK PANEL", 12, muted, true))
+        page.addView(space(24))
+        page.addView(label("Gaming overlay", 23, white, true))
+        page.addView(label("Game ke upar movable floating bubble aur quick shortcuts.", 14, muted, false))
         page.addView(space(18))
-
-        addTile(page, "BATTLE ROYALE", "BR setup notes aur HUD planning", "Open BR planner")
-        addTile(page, "CLASH SQUAD", "CS ke liye alag control setup save karo", "Open CS planner")
-        addTile(page, "SENSITIVITY MANAGER", "Apni tested sensitivity values save karo", "Edit sensitivity")
-        addTile(page, "CUSTOM CROSSHAIR", "Practice ke liye visual crosshair preview", "Open crosshair")
-        addTile(page, "DEVICE PERFORMANCE", "FPS, battery aur storage tips", "View tips")
-
-        page.addView(space(12))
+        addAction(page, "ENABLE FLOATING PANEL", "Screen par movable circle show kare", true) { enableOverlay() }
+        addAction(page, "OPEN FREE FIRE INDIA", "Game installed hai to launch kare", false) { launchGame() }
+        addAction(page, "HIDE FLOATING PANEL", "Overlay ko band kare", false) {
+            stopService(Intent(this, FloatingPanelService::class.java))
+            Toast.makeText(this, "Floating panel hidden", Toast.LENGTH_SHORT).show()
+        }
+        page.addView(space(18))
+        page.addView(label("Panel controls", 18, white, true))
+        page.addView(label("Quick notes • HUD reminder • Focus mode • Game launch", 13, muted, false))
+        page.addView(space(20))
         page.addView(label(
-            "Note: Ye companion utility hai. Ye game files modify nahi karti, " +
-                "hidden enemies reveal nahi karti aur anti-cheat bypass nahi karti.",
+            "Overlay permission Android settings se allow karni hogi. No root, VPN ya Shizuku required. " +
+                "This companion does not read game data, reveal hidden players, or bypass anti-cheat.",
             12, muted, false
         ))
         setContentView(page)
     }
 
-    private fun addTile(parent: LinearLayout, title: String, desc: String, action: String) {
+    private fun enableOverlay() {
+        if (!Settings.canDrawOverlays(this)) {
+            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))
+            startActivity(intent)
+            Toast.makeText(this, "Allow 'Display over other apps', then tap Enable again", Toast.LENGTH_LONG).show()
+            return
+        }
+        startService(Intent(this, FloatingPanelService::class.java))
+        Toast.makeText(this, "Floating panel enabled", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun launchGame() {
+        val intent = packageManager.getLaunchIntentForPackage("com.dts.freefireth")
+        if (intent != null) startActivity(intent)
+        else Toast.makeText(this, "Free Fire India is not installed on this device", Toast.LENGTH_LONG).show()
+    }
+
+    private fun addAction(parent: LinearLayout, title: String, desc: String, primary: Boolean, action: () -> Unit) {
         val card = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(16), dp(14), dp(16), dp(14))
+            setPadding(dp(16), dp(15), dp(16), dp(15))
             setBackgroundColor(panel)
         }
-        card.addView(label(title, 15, accent, true))
-        card.addView(label(desc, 13, muted, false))
-        val button = TextView(this).apply {
-            text = action.uppercase()
-            textSize = 12f
-            setTextColor(white)
-            typeface = Typeface.DEFAULT_BOLD
-            setPadding(0, dp(12), 0, 0)
-            setOnClickListener {
-                Toast.makeText(this@MainActivity, "$title planner — next update mein!", Toast.LENGTH_SHORT).show()
-            }
-        }
-        card.addView(button)
-        val params = LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
-        ).apply { bottomMargin = dp(12) }
+        card.addView(label(title, 14, if (primary) accent else white, true))
+        card.addView(label(desc, 12, muted, false))
+        card.setOnClickListener { action() }
+        val params = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            .apply { bottomMargin = dp(12) }
         parent.addView(card, params)
     }
 
-    private fun label(text: String, size: Int, color: Int, bold: Boolean): TextView =
-        TextView(this).apply {
-            this.text = text
-            textSize = size.toFloat()
-            setTextColor(color)
-            if (bold) typeface = Typeface.DEFAULT_BOLD
-        }
+    private fun label(text: String, size: Int, color: Int, bold: Boolean) = TextView(this).apply {
+        this.text = text
+        textSize = size.toFloat()
+        setTextColor(color)
+        if (bold) typeface = Typeface.DEFAULT_BOLD
+    }
 
     private fun space(height: Int) = android.view.View(this).apply {
         layoutParams = LinearLayout.LayoutParams(1, dp(height))
     }
-
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
 }
