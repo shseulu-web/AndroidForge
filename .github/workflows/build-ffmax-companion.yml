@@ -1,0 +1,56 @@
+name: Build FF MAX Companion APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "FFMaxCompanion/**"
+      - ".github/workflows/build-ffmax-companion.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ffmax-companion-apk
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build debug APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK 35
+        run: |
+          yes | sdkmanager --licenses >/dev/null
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+
+      - name: Set up Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Build APK
+        working-directory: FFMaxCompanion
+        run: gradle --no-daemon :app:assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: FFMaxCompanion-debug-APK
+          path: FFMaxCompanion/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 30
