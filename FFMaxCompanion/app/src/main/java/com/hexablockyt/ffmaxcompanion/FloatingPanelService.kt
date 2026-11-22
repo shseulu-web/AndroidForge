@@ -4,6 +4,7 @@ import android.app.Service
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.PixelFormat
+import android.graphics.drawable.GradientDrawable
 import android.graphics.Typeface
 import android.os.IBinder
 import android.view.Gravity
@@ -45,7 +46,7 @@ class FloatingPanelService : Service() {
             gravity = Gravity.CENTER
             setTextColor(Color.BLACK)
             typeface = Typeface.DEFAULT_BOLD
-            setBackgroundColor(green)
+            background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(green) }
             setPadding(0, 0, 0, 0)
             elevation = 12f
             setOnClickListener { if (expanded) hidePanel() else showPanel() }
@@ -59,7 +60,7 @@ class FloatingPanelService : Service() {
                             val dx=(e.rawX-sx).toInt(); val dy=(e.rawY-sy).toInt()
                             if (kotlin.math.abs(dx)+kotlin.math.abs(dy)>8) moved=true
                             p.x=ox+dx; p.y=oy+dy
-                            try { wm.updateViewLayout(bubble, p) } catch (_: Exception) {}
+                            try { wm.updateViewLayout(v, p) } catch (_: Exception) {}
                             return true
                         }
                         MotionEvent.ACTION_UP -> { if (!moved) { if (expanded) hidePanel() else showPanel() }; return true }
